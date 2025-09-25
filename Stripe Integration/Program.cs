@@ -41,8 +41,6 @@ namespace Stripe_Integration
                 //.EnableSensitiveDataLogging()
                 .UseSqlServer(builder.Configuration.GetConnectionString("StripeDatabase"))
             );
-            
-            builder.Services.AddMemoryCache();
 
             builder.Services.AddAutoMapper(cfg =>
             {

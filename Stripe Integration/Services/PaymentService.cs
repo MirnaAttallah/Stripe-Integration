@@ -20,7 +20,7 @@ namespace Stripe_Integration.Services
 
             var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
             var secret = client.GetSecret("Stripe-DoctorAI-Key");
-            StripeConfiguration.ApiKey = secret.Value.Value;
+            StripeConfiguration.ApiKey = secret?.Value?.Value;
             this.invoiceRepository = invoiceRepository;
         }
 

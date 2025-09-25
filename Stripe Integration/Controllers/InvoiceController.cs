@@ -27,6 +27,14 @@ namespace Stripe_Integration.Controllers
             return subscriptionRequest;
         }
 
+        [HttpGet("/cart/{userId}")]
+        public async Task<CreateSubscriptionRequest?> GetCart(string userId)
+        {
+            var subscriptionRequest = await _invoiceMainService.GetCartByUserId(userId);
+            
+            return subscriptionRequest;
+        }
+
         [HttpPost("/add-to-cart/{cartId}")]
         public async Task AddToCart([FromBody] CartItem cartItem, int cartId)
         {

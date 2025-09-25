@@ -109,15 +109,15 @@ namespace Stripe_Integration.Controllers
                 };
                 var service = new SessionService();
                 var session = await service.CreateAsync(options);
-                await _invoiceMainService.SwitchInvoiceStatus(request.InvoiceId, "inprogress");
-                await _invoiceMainService.AddInvoiceDetail(new InvoiceDetail
-                {
-                    Amount = request.Amount,
-                    InvoiceID = request.InvoiceId,
-                    ServiceMainID = request.PlanId,
-                    Frequency = request.Interval,
-                    Quantity = 1
-                });
+                //await _invoiceMainService.SwitchInvoiceStatus(request.InvoiceId, "inprogress");
+                //await _invoiceMainService.AddInvoiceDetail(new InvoiceDetail
+                //{
+                //    Amount = request.Amount,
+                //    InvoiceID = request.InvoiceId,
+                //    ServiceMainID = request.PlanId,
+                //    Frequency = request.Interval,
+                //    Quantity = 1
+                //});
                 return Ok(new { clientSecret = session.ClientSecret });
             }
             catch (Exception ex)

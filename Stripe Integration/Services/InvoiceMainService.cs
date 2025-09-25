@@ -46,6 +46,22 @@ namespace Stripe_Integration.Services
             await _invoiceRepository.SaveChangesAsync();
             return createdInvoice;
         }
+        public async Task<CreateSubscriptionRequest?> GetCartByUserId(string userId)
+        {
+            var invoices = await _invoiceRepository.GetAllByCustomerId(userId);
+            var invoice = invoices.FirstOrDefault(i => i.StripeStatus == "inprogress");
+            if (invoice is not null)
+            {
+                CreateSubscriptionRequest subscriptionRequest = new CreateSubscriptionRequest
+                            { InvoiceId = invoice.InvoiceID, B2cSubId = invoice.B2CSubID };
+                var invoiceDetails = invoice.InvoiceDetails;
+                invoiceDetails.ToList().ForEach(i => subscriptionRequest.Amount += i.Amount);
+                subscriptionRequest.PlanId = invoiceDetails.FirstOrDefault()!.ServiceMainID;
+                subscriptionRequest.Interval = invoiceDetails.FirstOrDefault()!.Frequency;
+                return subscriptionRequest;
+            }
+            return null;
+        }
 
         public async Task<InvoiceMain> GetInvoiceById(int invoiceId)
         {
