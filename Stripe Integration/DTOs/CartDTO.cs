@@ -17,7 +17,7 @@
     }
     public class CartItem
     {
-        public int ServiceMainId { get; set; }
+        public required string ServiceName { get; set; }
         public decimal UnitAmount { get; set; }
         public int Quantity { get; set; }
     }

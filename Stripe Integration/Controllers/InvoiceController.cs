@@ -21,22 +21,22 @@ namespace Stripe_Integration.Controllers
             var invoice = await _invoiceMainService.GetInvoiceById(id);
             CreateSubscriptionRequest subscriptionRequest = new CreateSubscriptionRequest() { InvoiceId = id, B2cSubId = invoice.B2CSubID };
             var invoiceDetails = invoice.InvoiceDetails;
-            invoiceDetails.ToList().ForEach(i => subscriptionRequest.Amount += i.Amount);
+            invoiceDetails.ToList().ForEach(i => subscriptionRequest.Amount += i.UnitAmount);
             subscriptionRequest.PlanId = invoiceDetails.FirstOrDefault()!.ServiceMainID;
             subscriptionRequest.Interval = invoiceDetails.FirstOrDefault()!.Frequency;
             return subscriptionRequest;
         }
 
         [HttpGet("/cart/{userId}")]
-        public async Task<CreateSubscriptionRequest?> GetCart(string userId)
+        public async Task<CartDTO?> GetCart(string userId)
         {
-            var subscriptionRequest = await _invoiceMainService.GetCartByUserId(userId);
+            var cart = await _invoiceMainService.GetCartByUserId(userId);
             
-            return subscriptionRequest;
+            return cart;
         }
 
         [HttpPost("/add-to-cart/{cartId}")]
-        public async Task AddToCart([FromBody] CartItem cartItem, int cartId)
+        public async Task AddToCart([FromBody] AddCartItem cartItem, int cartId)
         {
             var existingInvoice = await _invoiceMainService.GetInvoiceById(cartId);
             if (existingInvoice.InvoiceDetails.Any(d => d.ServiceMainID == cartItem.ServiceMainId))
@@ -49,7 +49,7 @@ namespace Stripe_Integration.Controllers
             {
                 var invoiceDetail = new InvoiceDetail
                 {
-                    Amount = cartItem.UnitAmount,
+                    UnitAmount = cartItem.UnitAmount,
                     InvoiceID = cartId,
                     ServiceMainID = cartItem.ServiceMainId,
                     Frequency = "one-time",

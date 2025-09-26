@@ -41,7 +41,7 @@ namespace Stripe_Integration.Controllers
             var createdInvoice = await _invoiceMainService.CreateInvoiceAsync(invoice);
             var InvoiceDetail = new InvoiceDetail
             {
-                Amount = request.Amount,
+                UnitAmount = request.Amount,
                 InvoiceID = createdInvoice.InvoiceID,
                 ServiceMainID = request.PlanId,
                 Frequency = request.Interval,
@@ -74,51 +74,9 @@ namespace Stripe_Integration.Controllers
         {
             try
             {
-                var plan = await _serviceMainService.GetPlanById(request.PlanId);
-                var options = new SessionCreateOptions
-                {
-                    UiMode = "embedded",
-                    LineItems = new List<SessionLineItemOptions>
-                    {
-                        new SessionLineItemOptions
-                        {
-                            PriceData = new SessionLineItemPriceDataOptions
-                            {
-                                UnitAmountDecimal = request.Amount *100m,
-                                ProductData = new SessionLineItemPriceDataProductDataOptions
-                                {
-                                    Name = plan.Name + " Plan",
-                                    Description = plan.Features != null ? string.Join(", ", plan.Features) : "",
-                                },
-                                Currency = request.Currency,
-                                Recurring = new SessionLineItemPriceDataRecurringOptions
-                                {
-                                    Interval = request.Interval
-                                }
-                            },
-                            Quantity = 1,
-                        },
-                    },
-                    Metadata = new Dictionary<string, string>
-                    {
-                        { "invoiceId", request.InvoiceId.ToString() },
-                    },
-                    Mode = "subscription",
-                    ReturnUrl = "http://localhost:4200/return?session_id={CHECKOUT_SESSION_ID}",
-                    AutomaticTax = new SessionAutomaticTaxOptions { Enabled = true },
-                };
-                var service = new SessionService();
-                var session = await service.CreateAsync(options);
-                //await _invoiceMainService.SwitchInvoiceStatus(request.InvoiceId, "inprogress");
-                //await _invoiceMainService.AddInvoiceDetail(new InvoiceDetail
-                //{
-                //    Amount = request.Amount,
-                //    InvoiceID = request.InvoiceId,
-                //    ServiceMainID = request.PlanId,
-                //    Frequency = request.Interval,
-                //    Quantity = 1
-                //});
-                return Ok(new { clientSecret = session.ClientSecret });
+                var plan = await _serviceMainService.GetServiceById(request.PlanId);
+                var clientSecret = await _paymentService.PaySubscription(request, plan);
+                return Ok(new { clientSecret });
             }
             catch (Exception ex)
             {
@@ -165,7 +123,7 @@ namespace Stripe_Integration.Controllers
                     {
                         PriceData = new SessionLineItemPriceDataOptions
                         {
-                            UnitAmountDecimal = detail.Amount * 100m,
+                            UnitAmountDecimal = detail.UnitAmount * 100m,
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
                                 Name = detail.ServiceMain.ShortDescription,
@@ -186,26 +144,26 @@ namespace Stripe_Integration.Controllers
             }
         }
 
-        [HttpGet("/cart/{id}")]
-        public async Task<CartDTO> GetCart(int id)
-        {
-            var invoice = await _invoiceMainService.GetInvoiceById(id);
-            var invoiceDetails = await _invoiceMainService.GetInvoiceDetailsById(id);
-            var cart = new CartDTO()
-            {
-                B2cSubId = invoice.B2CSubID,
-                CreatedIn = invoice.PurchaseDate ?? DateTime.UtcNow,
-                Currency = "usd",
-                Items = new List<CartItem>()
-            };
-            invoiceDetails.ForEach(i => cart.Items.Add(new CartItem
-            {
-                ServiceMainId = i.ServiceMainID,
-                UnitAmount = i.Amount,
-                Quantity = i.Quantity,
-            }));
-            return cart;
-        }
+        //[HttpGet("/cart/{id}")]
+        //public async Task<CartDTO> GetCart(int id)
+        //{
+        //    var invoice = await _invoiceMainService.GetInvoiceById(id);
+        //    var invoiceDetails = await _invoiceMainService.GetInvoiceDetailsById(id);
+        //    var cart = new CartDTO()
+        //    {
+        //        B2cSubId = invoice.B2CSubID,
+        //        CreatedIn = invoice.PurchaseDate ?? DateTime.UtcNow,
+        //        Currency = "usd",
+        //        Items = new List<CartItem>()
+        //    };
+        //    invoiceDetails.ForEach(i => cart.Items.Add(new CartItem
+        //    {
+        //        ServiceMainId = i.ServiceMainID,
+        //        UnitAmount = i.Amount,
+        //        Quantity = i.Quantity,
+        //    }));
+        //    return cart;
+        //}
 
         [HttpGet("/session-status")]
         public async Task<ActionResult> SessionStatus([FromQuery] string session_id)
@@ -214,18 +172,21 @@ namespace Stripe_Integration.Controllers
             Session session = sessionService.Get(session_id);
             var invoiceId = int.Parse(session.Metadata["invoiceId"]);
             var invoice = await _invoiceMainService.GetInvoiceById(invoiceId);
-            invoice.StripeInvoiceID = session.InvoiceId;
-            invoice.StripeCustomerID = session.CustomerId;
-            invoice.StripeSubscriptionID = session.SubscriptionId;
-            invoice.StripeCustomerEmail = session.CustomerEmail ?? session.CustomerDetails.Email;
-            invoice.StripeStatus = session.PaymentStatus;
-            invoice.TaxAmount = session.TotalDetails.AmountTax;
-            invoice.TotalTransactionAmount = (decimal)session.AmountTotal!/100m; //after discounts and taxes
-            invoice.PurchaseDate = session.Created;
-            if (session.Mode == "payment")
-                invoice.StripePaymentIntentID = session.PaymentIntentId;
-            await _invoiceMainService.UpdateAsync(invoice);
-            return new JsonResult(new { status = session.Status, customer_email = session.CustomerDetails.Email, invoiceId = invoiceId });
+            if (session.PaymentStatus != invoice.StripeStatus)
+            {
+                invoice.StripeInvoiceID = session.InvoiceId;
+                invoice.StripeCustomerID = session.CustomerId;
+                invoice.StripeSubscriptionID = session.SubscriptionId;
+                invoice.StripeCustomerEmail = session.CustomerEmail ?? session.CustomerDetails.Email;
+                invoice.StripeStatus = session.PaymentStatus;
+                invoice.TaxAmount = session.TotalDetails.AmountTax;
+                invoice.TotalTransactionAmount = (decimal)session.AmountTotal! / 100m; //after discounts and taxes
+                invoice.PurchaseDate = session.Created;
+                if (session.Mode == "payment")
+                    invoice.StripePaymentIntentID = session.PaymentIntentId;
+                await _invoiceMainService.UpdateAsync(invoice);
+            }
+            return new JsonResult(new { status = session.Status, customer_email = session.CustomerDetails.Email, invoiceId });
         }
     }
 }

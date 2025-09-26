@@ -2,9 +2,10 @@
 using Azure.Security.KeyVault.Secrets;
 using Stripe;
 using Stripe.Checkout;
+using Stripe_Integration.DTOs;
 using Stripe_Integration.Models;
 using Stripe_Integration.Repositories;
-using static System.Net.WebRequestMethods;
+using System.Numerics;
 
 namespace Stripe_Integration.Services
 {
@@ -12,68 +13,55 @@ namespace Stripe_Integration.Services
     {
         private readonly InvoiceMainRepository invoiceRepository;
         private static SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        string kvUri = "https://meliora-key-vault.vault.azure.net/";
+
+        SecretClient client;
         public PaymentService(InvoiceMainRepository invoiceRepository)
         {
             //string keyVaultName = Environment.GetEnvironmentVariable("Meliora-Key-Vault");
-
-            var kvUri = "https://meliora-key-vault.vault.azure.net/";
-
-            var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
-            var secret = client.GetSecret("Stripe-DoctorAI-Key");
-            StripeConfiguration.ApiKey = secret?.Value?.Value;
+            client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
             this.invoiceRepository = invoiceRepository;
         }
 
-        public async Task<string> PaySubscription(decimal price, string productName, string description, string userId, int invoiceId)
+        public async Task<string> PaySubscription(CreateSubscriptionRequest request, ServiceMainDto plan)
         {
+            var secret = await client.GetSecretAsync("Stripe-DoctorAI-Key");
+            StripeConfiguration.ApiKey = secret?.Value?.Value;
             var options = new SessionCreateOptions
             {
-                SuccessUrl = "http://localhost:4200",
-                AutomaticTax = new SessionAutomaticTaxOptions { Enabled = true },
-                Metadata = new Dictionary<string, string>(){
-                    { "B2CSubID", userId },
-
-                    {"invoiceID", invoiceId.ToString() }
-                },
+                UiMode = "embedded",
                 LineItems = new List<SessionLineItemOptions>
-                {
-                    new SessionLineItemOptions
                     {
-                        PriceData = new SessionLineItemPriceDataOptions
+                        new SessionLineItemOptions
                         {
-                            UnitAmountDecimal = (long)(price * 100),
-                            Currency = "usd",
-                            Recurring = new SessionLineItemPriceDataRecurringOptions
+                            PriceData = new SessionLineItemPriceDataOptions
                             {
-                                Interval = "month",
+                                UnitAmountDecimal = request.Amount *100m,
+                                ProductData = new SessionLineItemPriceDataProductDataOptions
+                                {
+                                    Name = plan.Name + " Plan",
+                                    Description = plan.Features != null ? string.Join(", ", plan.Features) : "",
+                                },
+                                Currency = request.Currency,
+                                Recurring = new SessionLineItemPriceDataRecurringOptions
+                                {
+                                    Interval = request.Interval
+                                }
                             },
-                            ProductData = new SessionLineItemPriceDataProductDataOptions
-                            {
-                                Name = productName,
-                                Description = description
-                            },
+                            Quantity = 1,
                         },
-                        Quantity = 1,
                     },
-                },
+                Metadata = new Dictionary<string, string>
+                    {
+                        { "invoiceId", request.InvoiceId.ToString() },
+                    },
                 Mode = "subscription",
-
-                //TaxIdCollection = new SessionTaxIdCollectionOptions
-                //{
-                //    Enabled = true,
-                //},
+                ReturnUrl = "http://localhost:4200/return?session_id={CHECKOUT_SESSION_ID}",
+                AutomaticTax = new SessionAutomaticTaxOptions { Enabled = true },
             };
-
             var service = new SessionService();
-            Session session = await service.CreateAsync(options);
-            await invoiceRepository.AddAsync(new InvoiceMain
-            {
-                B2CSubID = userId,
-                TotalTransactionAmount = price,
-                StripeStatus = "inprogress"
-            });
-            return session.Url;
-            //return new JsonResult(new { clientSecret = session.ClientSecret });
+            var session = await service.CreateAsync(options);
+            return session.ClientSecret ;
         }
         public async Task<string> PayOneTime(decimal price, string serviceName, string description, string userId)
         {

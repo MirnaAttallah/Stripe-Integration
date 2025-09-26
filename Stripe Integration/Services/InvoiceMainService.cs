@@ -1,4 +1,5 @@
-﻿using Stripe_Integration.DTOs;
+﻿using AutoMapper;
+using Stripe_Integration.DTOs;
 using Stripe_Integration.Models;
 using Stripe_Integration.Repositories;
 
@@ -8,10 +9,13 @@ namespace Stripe_Integration.Services
     {
         private readonly InvoiceMainRepository _invoiceRepository;
         private readonly Repository<InvoiceDetail> _invoiceDetailRepository;
-        public InvoiceMainService(InvoiceMainRepository invoiceRepository, Repository<InvoiceDetail> invoiceDetailRepository)
+        private readonly IMapper _mapper;
+        public InvoiceMainService(InvoiceMainRepository invoiceRepository, 
+            IMapper mapper, Repository<InvoiceDetail> invoiceDetailRepository)
         {
             _invoiceRepository = invoiceRepository;
             _invoiceDetailRepository = invoiceDetailRepository;
+            _mapper = mapper;
         }
 
         public async Task<int> CreateInvoiceAsync(CreatePaymentInvoice request)
@@ -31,7 +35,7 @@ namespace Stripe_Integration.Services
             await _invoiceRepository.SaveChangesAsync();
             var InvoiceDetail = new InvoiceDetail
             {
-                Amount = request.Items[0].UnitAmount,
+                UnitAmount = request.Items[0].UnitAmount,
                 InvoiceID = createdInvoice.InvoiceID,
                 ServiceMainID = request.Items[0].ServiceMainId,
                 Frequency = "one-time",
@@ -46,19 +50,20 @@ namespace Stripe_Integration.Services
             await _invoiceRepository.SaveChangesAsync();
             return createdInvoice;
         }
-        public async Task<CreateSubscriptionRequest?> GetCartByUserId(string userId)
+        public async Task<CartDTO?> GetCartByUserId(string userId)
         {
             var invoices = await _invoiceRepository.GetAllByCustomerId(userId);
             var invoice = invoices.FirstOrDefault(i => i.StripeStatus == "inprogress");
             if (invoice is not null)
             {
-                CreateSubscriptionRequest subscriptionRequest = new CreateSubscriptionRequest
-                            { InvoiceId = invoice.InvoiceID, B2cSubId = invoice.B2CSubID };
-                var invoiceDetails = invoice.InvoiceDetails;
-                invoiceDetails.ToList().ForEach(i => subscriptionRequest.Amount += i.Amount);
-                subscriptionRequest.PlanId = invoiceDetails.FirstOrDefault()!.ServiceMainID;
-                subscriptionRequest.Interval = invoiceDetails.FirstOrDefault()!.Frequency;
-                return subscriptionRequest;
+                CartDTO cart = new CartDTO
+                            { B2cSubId = invoice.B2CSubID, Items = new List<CartItem>() };
+                var invoiceDetails = _mapper.Map<List<CartItem>>( invoice.InvoiceDetails);
+                cart.Items.AddRange(invoiceDetails);
+                //invoiceDetails.ToList().ForEach(d => cart.Items.Add(d));
+                //subscriptionRequest.PlanId = invoiceDetails.FirstOrDefault()!.ServiceMainID;
+                //subscriptionRequest.Interval = invoiceDetails.FirstOrDefault()!.Frequency;
+                return cart;
             }
             return null;
         }

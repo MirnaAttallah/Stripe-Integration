@@ -11,7 +11,7 @@ namespace Stripe_Integration.Models
         public int ServiceMainID { get; set; }
         public int Quantity { get; set; }
         [Column(TypeName = "decimal(10,2)")]
-        public decimal Amount { get; set; }
+        public decimal UnitAmount { get; set; }
         [MaxLength(50)]
         public string Frequency { get; set; } // monthly, quarterly, yearly, etc.
         //Navigation Properties

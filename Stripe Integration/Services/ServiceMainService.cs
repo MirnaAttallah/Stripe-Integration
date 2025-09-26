@@ -40,7 +40,7 @@ namespace Stripe_Integration.Services
             return plansDtos;
         }
 
-        public async Task<ServiceMainDto> GetPlanById(int planId)
+        public async Task<ServiceMainDto> GetServiceById(int planId)
         {
             var plan = await repository.GetById(planId);
             var planDto = mapper.Map<ServiceMainDto>(plan);
@@ -56,10 +56,6 @@ namespace Stripe_Integration.Services
                 //logger.LogInformation($"Lab Test Details: {p.ServiceDetails.FirstOrDefault()!.DetailItemDescription}");
             });
             return plansDtos;
-        }
-        public async Task<ServiceMain> GetServiceById(int id)
-        {
-            return await repository.GetById(id);
         }
         public async Task<ServiceMain> AddService(ServiceMain service)
         {

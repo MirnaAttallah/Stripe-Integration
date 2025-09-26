@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Stripe;
 using Stripe_Integration.Configurations;
+using Stripe_Integration.DTOs;
 using Stripe_Integration.Models;
 using Stripe_Integration.Repositories;
 using Stripe_Integration.Services;
@@ -58,6 +59,12 @@ namespace Stripe_Integration
                         dest.Id = src.ServiceMainID;
                         dest.Features = new List<string>();
                         src.ServiceDetails.ToList().ForEach(d => dest.Features.Add($"{d.MonthlyCount} {d.DetailItemDescription}"));
+                    });
+                cfg.CreateMap<InvoiceDetail, CartItem>()
+                    .AfterMap((src, dest) =>
+                    {
+                        dest.UnitAmount = src.UnitAmount;
+                        dest.ServiceName = src.ServiceMain.ShortDescription;
                     });
             });
             var app = builder.Build();
