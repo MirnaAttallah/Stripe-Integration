@@ -65,7 +65,9 @@ namespace Stripe_Integration
                     {
                         dest.UnitAmount = src.UnitAmount;
                         dest.ServiceName = src.ServiceMain.ShortDescription;
-                    });
+                        dest.ServiceMainId = src.ServiceMainID;
+                    })
+                    .ReverseMap();
             });
             var app = builder.Build();
 

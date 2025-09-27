@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
@@ -90,6 +92,10 @@ namespace Stripe_Integration.Controllers
         {
             try
             {
+                string kvUri = "https://meliora-key-vault.vault.azure.net/";
+                SecretClient client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
+                var secret = await client.GetSecretAsync("Stripe-DoctorAI-Key");
+                StripeConfiguration.ApiKey = secret?.Value.Value;
                 var invoiceDetails = await _invoiceMainService.GetInvoiceDetailsById(invoiceId);
                 var options = new SessionCreateOptions
                 {

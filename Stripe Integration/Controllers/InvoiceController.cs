@@ -36,7 +36,7 @@ namespace Stripe_Integration.Controllers
         }
 
         [HttpPost("/add-to-cart/{cartId}")]
-        public async Task AddToCart([FromBody] AddCartItem cartItem, int cartId)
+        public async Task AddToCart([FromBody] CartItem cartItem, int cartId)
         {
             var existingInvoice = await _invoiceMainService.GetInvoiceById(cartId);
             if (existingInvoice.InvoiceDetails.Any(d => d.ServiceMainID == cartItem.ServiceMainId))
