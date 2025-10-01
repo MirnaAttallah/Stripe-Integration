@@ -185,7 +185,7 @@ namespace Stripe_Integration.Controllers
                 invoice.StripeSubscriptionID = session.SubscriptionId;
                 invoice.StripeCustomerEmail = session.CustomerEmail ?? session.CustomerDetails.Email;
                 invoice.StripeStatus = session.PaymentStatus;
-                invoice.TaxAmount = session.TotalDetails.AmountTax;
+                invoice.TaxAmount = session.TotalDetails.AmountTax/ 100m;
                 invoice.TotalTransactionAmount = (decimal)session.AmountTotal! / 100m; //after discounts and taxes
                 invoice.PurchaseDate = session.Created;
                 if (session.Mode == "payment")

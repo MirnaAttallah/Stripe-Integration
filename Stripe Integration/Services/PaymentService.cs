@@ -57,6 +57,10 @@ namespace Stripe_Integration.Services
                                Quantity = 1,
                            },
                        },
+                TaxIdCollection = new SessionTaxIdCollectionOptions
+                {
+                    Enabled = true,
+                },
                 Metadata = new Dictionary<string, string>
                        {
                            { "invoiceId", request.InvoiceId.ToString() },
