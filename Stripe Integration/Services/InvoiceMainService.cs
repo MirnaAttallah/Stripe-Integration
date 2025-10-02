@@ -57,7 +57,7 @@ namespace Stripe_Integration.Services
             if (invoice is not null)
             {
                 CartDTO cart = new CartDTO
-                            { B2cSubId = invoice.B2CSubID, Items = new List<CartItem>() };
+                            { B2cSubId = invoice.B2CSubID, Items = new List<CartItem>(), CartId = invoice.InvoiceID };
                 var invoiceDetails = _mapper.Map<List<CartItem>>( invoice.InvoiceDetails);
                 cart.Items.AddRange(invoiceDetails);
                 //invoiceDetails.ToList().ForEach(d => cart.Items.Add(d));

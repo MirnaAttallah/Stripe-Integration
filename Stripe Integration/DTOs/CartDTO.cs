@@ -2,6 +2,7 @@
 {
     public class CartDTO
     {
+        public int? CartId { get; set; } = null;
         public List<CartItem> Items { get; set; } = new List<CartItem>();
         public string Currency { get; set; } = "usd";
         public string B2cSubId { get; set; } = "";

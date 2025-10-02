@@ -150,27 +150,6 @@ namespace Stripe_Integration.Controllers
             }
         }
 
-        //[HttpGet("/cart/{id}")]
-        //public async Task<CartDTO> GetCart(int id)
-        //{
-        //    var invoice = await _invoiceMainService.GetInvoiceById(id);
-        //    var invoiceDetails = await _invoiceMainService.GetInvoiceDetailsById(id);
-        //    var cart = new CartDTO()
-        //    {
-        //        B2cSubId = invoice.B2CSubID,
-        //        CreatedIn = invoice.PurchaseDate ?? DateTime.UtcNow,
-        //        Currency = "usd",
-        //        Items = new List<CartItem>()
-        //    };
-        //    invoiceDetails.ForEach(i => cart.Items.Add(new CartItem
-        //    {
-        //        ServiceMainId = i.ServiceMainID,
-        //        UnitAmount = i.Amount,
-        //        Quantity = i.Quantity,
-        //    }));
-        //    return cart;
-        //}
-
         [HttpGet("/session-status")]
         public async Task<ActionResult> SessionStatus([FromQuery] string session_id)
         {
