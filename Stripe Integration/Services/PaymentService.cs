@@ -17,7 +17,7 @@ namespace Stripe_Integration.Services
 
         private async Task<StripeClient> GetStripeClientAsync()
         {
-            string kvUri = "https://meliora-key-vault.vault.azure.net/";
+            string kvUri = "https://doctorai-keyvault.vault.azure.net/";
             SecretClient client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
             var secret = await client.GetSecretAsync("Stripe-DoctorAI-Key");
             return new StripeClient(apiKey: secret.Value.Value);
